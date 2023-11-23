@@ -126,6 +126,8 @@ class TeamMemberService {
                 status: true,
                 password: true,
                 adminId: true,
+                firstName: true,
+                lastName: true,
             },
         });
 
@@ -187,7 +189,6 @@ class TeamMemberService {
                 teamMember: {
                     id: teamMember.id,
                     adminId: teamMember.adminId,
-                    projects: projectIds,
                 },
             },
             process.env.JWT_SECRET,
@@ -196,7 +197,12 @@ class TeamMemberService {
             }
         );
 
-        return token;
+        const teamMemberWithoutPassword = {
+            firstName: teamMember.firstName,
+            lastName: teamMember.lastName,
+        };
+
+        return { token, projectIds, me: teamMemberWithoutPassword };
     };
 }
 
