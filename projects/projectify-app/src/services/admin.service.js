@@ -3,18 +3,18 @@ import { crypto } from "../utils/crypto.js";
 import { mailer } from "../utils/mailer.js";
 import { bcrypt } from "../utils/bcrypt.js";
 
-class UserService {
+class AdminService {
     signUp = async (input) => {
         try {
             const hashedPassword = await bcrypt.hash(input.password);
             const activationToken = crypto.createToken();
             const hashedActivationToken = crypto.hash(activationToken);
-            await prisma.user.create({
+            await prisma.admin.create({
                 data: {
                     ...input,
                     password: hashedPassword,
-                    activationToken: hashedActivationToken,
-                },
+                    activationToken: hashedActivationToken
+                }
             });
             await mailer.sendActivationMail(input.email, activationToken);
         } catch (error) {
@@ -24,30 +24,30 @@ class UserService {
 
     login = async (input) => {
         try {
-            const user = await prisma.user.findFirst({
+            const admin = await prisma.admin.findFirst({
                 where: {
-                    email: input.email,
+                    email: input.email
                 },
                 select: {
                     id: true,
                     status: true,
-                    password: true,
-                },
+                    password: true
+                }
             });
 
-            if (!user) throw new Error("Invalid Credentials");
+            if (!admin) throw new Error("Invalid Credentials");
 
-            if (user.status === "INACTIVE") {
+            if (admin.status === "INACTIVE") {
                 const activationToken = crypto.createToken();
                 const hashedActivationToken = crypto.hash(activationToken);
 
-                await prisma.user.update({
+                await prisma.admin.update({
                     where: {
-                        id: user.id,
+                        id: admin.id
                     },
                     data: {
-                        activationToken: hashedActivationToken,
-                    },
+                        activationToken: hashedActivationToken
+                    }
                 });
 
                 await mailer.sendActivationMail(input.email, activationToken);
@@ -59,7 +59,7 @@ class UserService {
 
             const isPasswordMatches = await bcrypt.compare(
                 input.password,
-                user.password
+                admin.password
             );
             if (!isPasswordMatches) {
                 throw new Error("Invalid Credentials");
@@ -72,28 +72,28 @@ class UserService {
     activate = async (token) => {
         try {
             const hashedActivationToken = crypto.hash(token);
-            const user = await prisma.user.findFirst({
+            const admin = await prisma.admin.findFirst({
                 where: {
-                    activationToken: hashedActivationToken,
+                    activationToken: hashedActivationToken
                 },
                 select: {
                     id: true,
-                    activationToken: true,
-                },
+                    activationToken: true
+                }
             });
 
-            if (!user) {
+            if (!admin) {
                 throw new Error("Invalid Token");
             }
 
-            await prisma.user.update({
+            await prisma.admin.update({
                 where: {
-                    id: user.id,
+                    id: admin.id
                 },
                 data: {
                     status: "ACTIVE",
-                    activationToken: "",
-                },
+                    activationToken: ""
+                }
             });
         } catch (error) {
             console.log(error);
@@ -102,4 +102,4 @@ class UserService {
     };
 }
 
-export const userService = new UserService();
+export const adminService = new AdminService();
