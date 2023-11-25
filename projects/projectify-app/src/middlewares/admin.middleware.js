@@ -1,10 +1,10 @@
 import jwt from "jsonwebtoken";
-class UserMiddleware {
+class AdminMiddleware {
     authenticate = (req, res, next) => {
         const { headers } = req;
         if (!headers.authorization) {
             res.status(401).json({
-                message: "You are not logged in. Please, log in",
+                message: "You are not logged in. Please, log in"
             });
             return;
         }
@@ -12,7 +12,7 @@ class UserMiddleware {
 
         if (!prefix || !token) {
             res.status(400).json({
-                message: "Not Valid Token",
+                message: "Not Valid Token"
             });
 
             return;
@@ -21,14 +21,14 @@ class UserMiddleware {
         try {
             const payload = jwt.verify(token, process.env.JWT_SECRET);
 
-            req.userId = payload.userId;
+            req.adminId = payload.adminId;
             next();
         } catch (error) {
             res.status(500).json({
-                error: error.message,
+                error: error.message
             });
         }
     };
 }
 
-export const userMiddleware = new UserMiddleware();
+export const adminMiddleware = new AdminMiddleware();
