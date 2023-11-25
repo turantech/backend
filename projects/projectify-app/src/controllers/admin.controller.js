@@ -1,6 +1,6 @@
-import { userService } from "../services/user.service.js";
+import { adminService } from "../services/admin.service.js";
 
-class UserController {
+class AdminController {
     signUp = async (req, res) => {
         const { body } = req;
 
@@ -13,7 +13,7 @@ class UserController {
         };
 
         try {
-            await userService.signUp(input);
+            await adminService.signUp(input);
             res.status(201).json({
                 message: "Success",
             });
@@ -25,4 +25,4 @@ class UserController {
     };
 }
 
-export const userController = new UserController();
+export const adminController = new AdminController();

@@ -1,9 +1,9 @@
 import { prisma } from "../prisma/index.js";
 
-class UserService {
+class AdminService {
     signUp = async (input) => {
         try {
-            await prisma.user.create({
+            await prisma.admin.create({
                 data: input,
             });
         } catch (error) {
@@ -12,4 +12,4 @@ class UserService {
     };
 }
 
-export const userService = new UserService();
+export const adminService = new AdminService();
