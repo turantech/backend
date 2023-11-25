@@ -74,13 +74,19 @@ class TeamMemberService {
         const teamMember = await prisma.teamMember.findFirst({
             where: {
                 id: teamMemberId,
-                adminId: adminId,
             },
         });
 
         if (!teamMember) {
             throw new CustomError(
-                "Forbidden: Team member does not belong to your team",
+                `Team member does not exist with following id ${teamMemberId}`,
+                404
+            );
+        }
+
+        if (teamMember.adminId !== adminId) {
+            throw new CustomError(
+                "Forbidden: You are not authorized to perform this action",
                 403
             );
         }

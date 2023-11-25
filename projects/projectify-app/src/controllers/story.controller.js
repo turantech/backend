@@ -26,6 +26,13 @@ class StoryController {
             data: story,
         });
     });
+
+    getOne = (req, res) => {
+        const { story } = req;
+        res.status(200).json({
+            data: story,
+        });
+    };
 }
 
 export const storyController = new StoryController();

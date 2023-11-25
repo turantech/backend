@@ -10,6 +10,19 @@ class StoryService {
 
         return story;
     };
+
+    getOne = async (id) => {
+        const story = await prisma.story.findUnique({
+            where: {
+                id: id,
+            },
+        });
+        if (!story) {
+            throw new CustomError("Story does not exist", 404);
+        }
+
+        return story;
+    };
 }
 
 export const storyService = new StoryService();
