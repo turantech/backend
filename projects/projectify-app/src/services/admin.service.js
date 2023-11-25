@@ -1,12 +1,12 @@
 import { prisma } from "../prisma/index.js";
 import { bcrypt } from "../utils/bcrypt.js";
 
-class UserService {
+class AdminService {
     signUp = async (input) => {
         try {
             const hashedPassword = await bcrypt.hash(input.password);
-            await prisma.user.create({
-                data: { ...input, password: hashedPassword },
+            await prisma.admin.create({
+                data: { ...input, password: hashedPassword }
             });
         } catch (error) {
             console.log(error);
@@ -16,17 +16,17 @@ class UserService {
 
     login = async (input) => {
         try {
-            const user = await prisma.user.findFirst({
+            const admin = await prisma.admin.findFirst({
                 where: {
-                    email: input.email,
-                },
+                    email: input.email
+                }
             });
 
-            if (!user) throw new Error("Invalid Credentials");
+            if (!admin) throw new Error("Invalid Credentials");
 
             const isPasswordMatches = bcrypt.compare(
                 input.password,
-                user.password
+                admin.password
             );
             if (!isPasswordMatches) {
                 throw new Error("Invalid Credentials");
@@ -37,4 +37,4 @@ class UserService {
     };
 }
 
-export const userService = new UserService();
+export const adminService = new AdminService();
