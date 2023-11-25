@@ -1,14 +1,14 @@
 import { prisma } from "../prisma/index.js";
 import { hashFunction, generateSalt } from "../utils/hash.js";
 
-class UserService {
+class AdminService {
     signUp = async (input) => {
         try {
             const salt = generateSalt();
 
             const hashedPassword = hashFunction(input.password + salt);
-            await prisma.user.create({
-                data: { ...input, password: `${salt}.${hashedPassword}` },
+            await prisma.admin.create({
+                data: { ...input, password: `${salt}.${hashedPassword}` }
             });
         } catch (error) {
             throw new Error(error);
@@ -17,19 +17,19 @@ class UserService {
 
     login = async (input) => {
         try {
-            const user = await prisma.user.findFirst({
+            const admin = await prisma.admin.findFirst({
                 where: {
-                    email: input.email,
-                },
+                    email: input.email
+                }
             });
 
-            if (!user) {
+            if (!admin) {
                 throw new Error("Invalid Credentials");
             }
-            const [salt, userHashedPassword] = user.password.split(".");
+            const [salt, adminHashedPassword] = admin.password.split(".");
 
             const hashedPassword = hashFunction(input.password + salt);
-            if (userHashedPassword !== hashedPassword) {
+            if (adminHashedPassword !== hashedPassword) {
                 throw new Error("Invalid Credentials");
             }
         } catch (error) {
@@ -38,4 +38,4 @@ class UserService {
     };
 }
 
-export const userService = new UserService();
+export const adminService = new AdminService();
