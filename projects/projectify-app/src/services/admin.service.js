@@ -5,18 +5,18 @@ import { bcrypt } from "../utils/bcrypt.js";
 import { date } from "../utils/date.js";
 import jwt from "jsonwebtoken";
 
-class UserService {
+class AdminService {
     signUp = async (input) => {
         try {
             const hashedPassword = await bcrypt.hash(input.password);
             const activationToken = crypto.createToken();
             const hashedActivationToken = crypto.hash(activationToken);
-            await prisma.user.create({
+            await prisma.admin.create({
                 data: {
                     ...input,
                     password: hashedPassword,
-                    activationToken: hashedActivationToken,
-                },
+                    activationToken: hashedActivationToken
+                }
             });
             await mailer.sendActivationMail(input.email, activationToken);
         } catch (error) {
@@ -26,30 +26,30 @@ class UserService {
 
     login = async (input) => {
         try {
-            const user = await prisma.user.findFirst({
+            const admin = await prisma.admin.findFirst({
                 where: {
-                    email: input.email,
+                    email: input.email
                 },
                 select: {
                     id: true,
                     status: true,
-                    password: true,
-                },
+                    password: true
+                }
             });
 
-            if (!user) throw new Error("Invalid Credentials");
+            if (!admin) throw new Error("Invalid Credentials");
 
-            if (user.status === "INACTIVE") {
+            if (admin.status === "INACTIVE") {
                 const activationToken = crypto.createToken();
                 const hashedActivationToken = crypto.hash(activationToken);
 
-                await prisma.user.update({
+                await prisma.admin.update({
                     where: {
-                        id: user.id,
+                        id: admin.id
                     },
                     data: {
-                        activationToken: hashedActivationToken,
-                    },
+                        activationToken: hashedActivationToken
+                    }
                 });
 
                 await mailer.sendActivationMail(input.email, activationToken);
@@ -61,7 +61,7 @@ class UserService {
 
             const isPasswordMatches = await bcrypt.compare(
                 input.password,
-                user.password
+                admin.password
             );
             if (!isPasswordMatches) {
                 throw new Error("Invalid Credentials");
@@ -69,11 +69,11 @@ class UserService {
 
             const token = jwt.sign(
                 {
-                    userId: user.id,
+                    adminId: admin.id
                 },
                 process.env.JWT_SECRET,
                 {
-                    expiresIn: "2 days",
+                    expiresIn: "2 days"
                 }
             );
 
@@ -86,28 +86,28 @@ class UserService {
     activate = async (token) => {
         try {
             const hashedActivationToken = crypto.hash(token);
-            const user = await prisma.user.findFirst({
+            const admin = await prisma.admin.findFirst({
                 where: {
-                    activationToken: hashedActivationToken,
+                    activationToken: hashedActivationToken
                 },
                 select: {
                     id: true,
-                    activationToken: true,
-                },
+                    activationToken: true
+                }
             });
 
-            if (!user) {
+            if (!admin) {
                 throw new Error("Invalid Token");
             }
 
-            await prisma.user.update({
+            await prisma.admin.update({
                 where: {
-                    id: user.id,
+                    id: admin.id
                 },
                 data: {
                     status: "ACTIVE",
-                    activationToken: null,
-                },
+                    activationToken: null
+                }
             });
         } catch (error) {
             throw error;
@@ -116,32 +116,32 @@ class UserService {
 
     forgotPassword = async (email) => {
         try {
-            const user = await prisma.user.findFirst({
+            const admin = await prisma.admin.findFirst({
                 where: {
-                    email,
+                    email
                 },
                 select: {
-                    id: true,
-                },
+                    id: true
+                }
             });
 
-            if (!user) {
+            if (!admin) {
                 throw new Error(
-                    "We could not find a user with the email you provided"
+                    "We could not find a admin with the email you provided"
                 );
             }
 
             const passwordResetToken = crypto.createToken();
             const hashedPasswordResetToken = crypto.hash(passwordResetToken);
 
-            await prisma.user.update({
+            await prisma.admin.update({
                 where: {
-                    id: user.id,
+                    id: admin.id
                 },
                 data: {
                     passwordResetToken: hashedPasswordResetToken,
-                    passwordResetTokenExpirationDate: date.addMinutes(10),
-                },
+                    passwordResetTokenExpirationDate: date.addMinutes(10)
+                }
             });
 
             await mailer.sendPasswordResetToken(email, passwordResetToken);
@@ -153,24 +153,24 @@ class UserService {
     resetPassword = async (token, password) => {
         try {
             const hashedPasswordResetToken = crypto.hash(token);
-            const user = await prisma.user.findFirst({
+            const admin = await prisma.admin.findFirst({
                 where: {
-                    passwordResetToken: hashedPasswordResetToken,
+                    passwordResetToken: hashedPasswordResetToken
                 },
                 select: {
                     id: true,
                     passwordResetToken: true,
-                    passwordResetTokenExpirationDate: true,
-                },
+                    passwordResetTokenExpirationDate: true
+                }
             });
 
-            if (!user) {
+            if (!admin) {
                 throw new Error("Invalid Token");
             }
 
             const currentTime = new Date();
             const tokenExpDate = new Date(
-                user.passwordResetTokenExpirationDate
+                admin.passwordResetTokenExpirationDate
             );
 
             if (tokenExpDate < currentTime) {
@@ -178,44 +178,44 @@ class UserService {
                 throw new Error("Reset Token Expired");
             }
 
-            await prisma.user.update({
+            await prisma.admin.update({
                 where: {
-                    id: user.id,
+                    id: admin.id
                 },
                 data: {
                     password: await bcrypt.hash(password),
                     passwordResetToken: null,
-                    passwordResetTokenExpirationDate: null,
-                },
+                    passwordResetTokenExpirationDate: null
+                }
             });
         } catch (error) {
             throw error;
         }
     };
 
-    getMe = async (userId) => {
+    getMe = async (adminId) => {
         try {
-            const user = await prisma.user.findUnique({
+            const admin = await prisma.admin.findUnique({
                 where: {
-                    id: userId,
+                    id: adminId
                 },
                 select: {
                     firstName: true,
                     lastName: true,
                     preferredFirstName: true,
-                    email: true,
-                },
+                    email: true
+                }
             });
 
-            if (!user) {
-                throw new Error("User not found");
+            if (!admin) {
+                throw new Error("Admin not found");
             }
 
-            return user;
+            return admin;
         } catch (error) {
             throw error;
         }
     };
 }
 
-export const userService = new UserService();
+export const adminService = new AdminService();
