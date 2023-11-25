@@ -1,26 +1,26 @@
-import { userService } from "../services/user.service.js";
+import { adminService } from "../services/admin.service.js";
 import { catchAsync } from "../utils/catch-async.js";
 import { CustomError } from "../utils/custom-error.js";
-class UserController {
+class AdminController {
     signUp = catchAsync(async (req, res) => {
         const { body } = req;
 
-        const userInput = {
+        const adminInput = {
             email: body.email,
             preferredFirstName: body.preferredName,
             firstName: body.firstName,
             lastName: body.lastName,
-            password: body.password,
+            password: body.password
         };
 
         const companyInput = {
             name: body.company.name,
-            position: body.company.position,
+            position: body.company.position
         };
 
-        await userService.signUp(userInput, companyInput);
+        await adminService.signUp(adminInput, companyInput);
         res.status(201).json({
-            message: "Success",
+            message: "Success"
         });
     });
 
@@ -28,47 +28,47 @@ class UserController {
         const { body } = req;
         const input = {
             email: body.email,
-            password: body.password,
+            password: body.password
         };
 
-        const jwt = await userService.login(input);
+        const jwt = await adminService.login(input);
         res.status(200).json({
-            token: jwt,
+            token: jwt
         });
     });
 
     activate = catchAsync(async (req, res) => {
         const {
-            query: { activationToken },
+            query: { activationToken }
         } = req;
 
         if (!activationToken) {
             throw new CustomError("Activation Token is missing", 400);
         }
 
-        await userService.activate(activationToken);
+        await adminService.activate(activationToken);
 
         res.status(200).json({
-            message: "Success",
+            message: "Success"
         });
     });
 
     forgotPassword = catchAsync(async (req, res) => {
         const {
-            body: { email },
+            body: { email }
         } = req;
 
-        await userService.forgotPassword(email);
+        await adminService.forgotPassword(email);
 
         res.status(200).json({
-            message: "Password reset email has been sent",
+            message: "Password reset email has been sent"
         });
     });
 
     resetPassword = catchAsync(async (req, res) => {
         const {
             body: { password, passwordConfirm },
-            headers,
+            headers
         } = req;
         if (!password || !passwordConfirm) {
             throw new CustomError(
@@ -92,71 +92,71 @@ class UserController {
             throw new CustomError("Invalid Password Reset Token", 400);
         }
 
-        await userService.resetPassword(token, password);
+        await adminService.resetPassword(token, password);
         res.status(200).json({
-            message: "Password successfully updated",
+            message: "Password successfully updated"
         });
     });
 
     getMe = catchAsync(async (req, res) => {
-        const { userId } = req;
+        const { adminId } = req;
 
-        const me = await userService.getMe(userId);
+        const me = await adminService.getMe(adminId);
 
         res.status(200).json({
-            data: me,
+            data: me
         });
     });
 
     createTask = catchAsync(async (req, res) => {
-        const { userId, body } = req;
+        const { adminId, body } = req;
 
         const input = {
             title: body.title,
             description: body.description,
-            due: body.due,
+            due: body.due
         };
 
         if (!input.title || !input.due) {
             throw new CustomError("Both Title and Due Date are required", 404);
         }
 
-        const data = await userService.createTask(userId, input);
+        const data = await adminService.createTask(adminId, input);
 
         res.status(201).json({
-            data,
+            data
         });
     });
 
     getTasks = catchAsync(async (req, res) => {
-        const { userId } = req;
+        const { adminId } = req;
 
-        const tasks = await userService.getTasks(userId);
+        const tasks = await adminService.getTasks(adminId);
 
         res.status(200).json({
-            data: tasks,
+            data: tasks
         });
     });
 
     getTask = catchAsync(async (req, res) => {
-        const { userId, params } = req;
+        const { adminId, params } = req;
 
-        const task = await userService.getTask(userId, params.taskId);
+        const task = await adminService.getTask(adminId, params.taskId);
 
         res.status(200).json({
-            data: task,
+            data: task
         });
     });
 
     deleteTask = catchAsync(async (req, res) => {
-        const { userId, params } = req;
+        const { adminId, params } = req;
 
-        await userService.deleteTask(userId, params.taskId);
+        await adminService.deleteTask(adminId, params.taskId);
         res.status(204).send();
     });
 
     updateTask = catchAsync(async (req, res) => {
-        const { userId, params, body } = req;
+        const { adminId, params, body } = req;
 
         const input = {};
         if (body.status) {
@@ -173,9 +173,9 @@ class UserController {
             throw new CustomError("Update data is required, 400");
         }
 
-        await userService.updateTask(userId, params.taskId, input);
+        await adminService.updateTask(adminId, params.taskId, input);
         res.status(204).send();
     });
 }
 
-export const userController = new UserController();
+export const adminController = new AdminController();

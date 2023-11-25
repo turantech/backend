@@ -36,10 +36,10 @@ model Company {
     name     String
     position String
 
-    userId String @unique @db.ObjectId
+    adminId String @unique @db.ObjectId
 }
 
-model User {
+model Admin {
     id                               String        @id @default(auto()) @map("_id") @db.ObjectId
     email                            String        @unique
     preferredFirstName               String?
@@ -60,5 +60,5 @@ model Project {
     name        String
     description String
     status      ProjectStatus @default(ACTIVE)
-    userId      String        @db.ObjectId
+    adminId     String        @db.ObjectId
 }

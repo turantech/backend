@@ -7,56 +7,56 @@ import jwt from "jsonwebtoken";
 import { v4 as uuid } from "uuid";
 import { CustomError } from "../utils/custom-error.js";
 
-class UserService {
-    signUp = async (userInput, companyInput) => {
-        const hashedPassword = await bcrypt.hash(userInput.password);
+class AdminService {
+    signUp = async (adminInput, companyInput) => {
+        const hashedPassword = await bcrypt.hash(adminInput.password);
         const activationToken = crypto.createToken();
         const hashedActivationToken = crypto.hash(activationToken);
-        const user = await prisma.user.create({
+        const admin = await prisma.admin.create({
             data: {
-                ...userInput,
+                ...adminInput,
                 password: hashedPassword,
-                activationToken: hashedActivationToken,
+                activationToken: hashedActivationToken
             },
             select: {
-                id: true,
-            },
+                id: true
+            }
         });
 
         await prisma.company.create({
             data: {
                 ...companyInput,
-                userId: user.id,
-            },
+                adminId: admin.id
+            }
         });
-        await mailer.sendActivationMail(userInput.email, activationToken);
+        await mailer.sendActivationMail(adminInput.email, activationToken);
     };
 
     login = async (input) => {
-        const user = await prisma.user.findFirst({
+        const admin = await prisma.admin.findFirst({
             where: {
-                email: input.email,
+                email: input.email
             },
             select: {
                 id: true,
                 status: true,
-                password: true,
-            },
+                password: true
+            }
         });
 
-        if (!user) throw new CustomError("User does not exist", 404);
+        if (!admin) throw new CustomError("Admin does not exist", 404);
 
-        if (user.status === "INACTIVE") {
+        if (admin.status === "INACTIVE") {
             const activationToken = crypto.createToken();
             const hashedActivationToken = crypto.hash(activationToken);
 
-            await prisma.user.update({
+            await prisma.admin.update({
                 where: {
-                    id: user.id,
+                    id: admin.id
                 },
                 data: {
-                    activationToken: hashedActivationToken,
-                },
+                    activationToken: hashedActivationToken
+                }
             });
 
             await mailer.sendActivationMail(input.email, activationToken);
@@ -69,7 +69,7 @@ class UserService {
 
         const isPasswordMatches = await bcrypt.compare(
             input.password,
-            user.password
+            admin.password
         );
         if (!isPasswordMatches) {
             throw new CustomError("Invalid Credentials", 401);
@@ -77,11 +77,11 @@ class UserService {
 
         const token = jwt.sign(
             {
-                userId: user.id,
+                adminId: admin.id
             },
             process.env.JWT_SECRET,
             {
-                expiresIn: "2 days",
+                expiresIn: "2 days"
             }
         );
 
@@ -90,47 +90,47 @@ class UserService {
 
     activate = async (token) => {
         const hashedActivationToken = crypto.hash(token);
-        const user = await prisma.user.findFirst({
+        const admin = await prisma.admin.findFirst({
             where: {
-                activationToken: hashedActivationToken,
+                activationToken: hashedActivationToken
             },
             select: {
                 id: true,
-                activationToken: true,
-            },
+                activationToken: true
+            }
         });
 
-        if (!user) {
+        if (!admin) {
             throw new CustomError(
-                "User does not exist with with provided Activation Token",
+                "Admin does not exist with with provided Activation Token",
                 404
             );
         }
 
-        await prisma.user.update({
+        await prisma.admin.update({
             where: {
-                id: user.id,
+                id: admin.id
             },
             data: {
                 status: "ACTIVE",
-                activationToken: null,
-            },
+                activationToken: null
+            }
         });
     };
 
     forgotPassword = async (email) => {
-        const user = await prisma.user.findFirst({
+        const admin = await prisma.admin.findFirst({
             where: {
-                email,
+                email
             },
             select: {
-                id: true,
-            },
+                id: true
+            }
         });
 
-        if (!user) {
+        if (!admin) {
             throw new CustomError(
-                "User does not exist with provided email",
+                "Admin does not exist with provided email",
                 404
             );
         }
@@ -138,14 +138,14 @@ class UserService {
         const passwordResetToken = crypto.createToken();
         const hashedPasswordResetToken = crypto.hash(passwordResetToken);
 
-        await prisma.user.update({
+        await prisma.admin.update({
             where: {
-                id: user.id,
+                id: admin.id
             },
             data: {
                 passwordResetToken: hashedPasswordResetToken,
-                passwordResetTokenExpirationDate: date.addMinutes(10),
-            },
+                passwordResetTokenExpirationDate: date.addMinutes(10)
+            }
         });
 
         await mailer.sendPasswordResetToken(email, passwordResetToken);
@@ -153,26 +153,26 @@ class UserService {
 
     resetPassword = async (token, password) => {
         const hashedPasswordResetToken = crypto.hash(token);
-        const user = await prisma.user.findFirst({
+        const admin = await prisma.admin.findFirst({
             where: {
-                passwordResetToken: hashedPasswordResetToken,
+                passwordResetToken: hashedPasswordResetToken
             },
             select: {
                 id: true,
                 passwordResetToken: true,
-                passwordResetTokenExpirationDate: true,
-            },
+                passwordResetTokenExpirationDate: true
+            }
         });
 
-        if (!user) {
+        if (!admin) {
             throw new CustomError(
-                "User does not exist with  provided Password Reset Token",
+                "Admin does not exist with  provided Password Reset Token",
                 404
             );
         }
 
         const currentTime = new Date();
-        const tokenExpDate = new Date(user.passwordResetTokenExpirationDate);
+        const tokenExpDate = new Date(admin.passwordResetTokenExpirationDate);
 
         if (tokenExpDate < currentTime) {
             // Token Expired;
@@ -182,95 +182,95 @@ class UserService {
             );
         }
 
-        await prisma.user.update({
+        await prisma.admin.update({
             where: {
-                id: user.id,
+                id: admin.id
             },
             data: {
                 password: await bcrypt.hash(password),
                 passwordResetToken: null,
-                passwordResetTokenExpirationDate: null,
-            },
+                passwordResetTokenExpirationDate: null
+            }
         });
     };
 
-    getMe = async (userId) => {
-        const user = await prisma.user.findUnique({
+    getMe = async (adminId) => {
+        const admin = await prisma.admin.findUnique({
             where: {
-                id: userId,
+                id: adminId
             },
             select: {
                 firstName: true,
                 lastName: true,
                 preferredFirstName: true,
                 email: true,
-                id: true,
-            },
+                id: true
+            }
         });
 
-        if (!user) {
-            throw new Error("User does not exist anymore, 404");
+        if (!admin) {
+            throw new Error("Admin does not exist anymore, 404");
         }
 
         const company = await prisma.company.findFirst({
-            where: { userId: user.id },
+            where: { adminId: admin.id },
             select: {
                 name: true,
-                position: true,
-            },
+                position: true
+            }
         });
 
-        return { ...user, company };
+        return { ...admin, company };
     };
 
-    createTask = async (userId, input) => {
+    createTask = async (adminId, input) => {
         const id = uuid();
         const task = {
             ...input,
             status: "TODO",
-            id,
+            id
         };
 
-        await prisma.user.update({
+        await prisma.admin.update({
             where: {
-                id: userId,
+                id: adminId
             },
             data: {
                 tasks: {
-                    push: task,
-                },
-            },
+                    push: task
+                }
+            }
         });
 
         return task;
     };
 
-    getTasks = async (userId) => {
-        const tasks = await prisma.user.findUnique({
+    getTasks = async (adminId) => {
+        const tasks = await prisma.admin.findUnique({
             where: {
-                id: userId,
+                id: adminId
             },
 
             select: {
-                tasks: true,
-            },
+                tasks: true
+            }
         });
 
         return tasks;
     };
 
-    getTask = async (userId, taskId) => {
-        const user = await prisma.user.findUnique({
+    getTask = async (adminId, taskId) => {
+        const admin = await prisma.admin.findUnique({
             where: {
-                id: userId,
+                id: adminId
             },
 
             select: {
-                tasks: true,
-            },
+                tasks: true
+            }
         });
 
-        const task = user.tasks.find((task) => task.id === taskId);
+        const task = admin.tasks.find((task) => task.id === taskId);
         if (!task) {
             throw new CustomError("Task not found", 404);
         }
@@ -278,49 +278,49 @@ class UserService {
         return task;
     };
 
-    deleteTask = async (userId, taskId) => {
-        const user = await prisma.user.findUnique({
+    deleteTask = async (adminId, taskId) => {
+        const admin = await prisma.admin.findUnique({
             where: {
-                id: userId,
+                id: adminId
             },
 
             select: {
-                tasks: true,
-            },
+                tasks: true
+            }
         });
 
-        const tasksToKeep = user.tasks.filter((task) => task.id !== taskId);
+        const tasksToKeep = admin.tasks.filter((task) => task.id !== taskId);
 
-        if (tasksToKeep.length === user.tasks.length) {
+        if (tasksToKeep.length === admin.tasks.length) {
             throw new CustomError("Task does not exist", 404);
         }
 
-        await prisma.user.update({
+        await prisma.admin.update({
             where: {
-                id: userId,
+                id: adminId
             },
 
             data: {
-                tasks: tasksToKeep,
-            },
+                tasks: tasksToKeep
+            }
         });
     };
 
-    updateTask = async (userId, taskId, input) => {
-        const user = await prisma.user.findUnique({
+    updateTask = async (adminId, taskId, input) => {
+        const admin = await prisma.admin.findUnique({
             where: {
-                id: userId,
+                id: adminId
             },
 
             select: {
-                tasks: true,
-            },
+                tasks: true
+            }
         });
 
         const tasksNotToUpdate = [];
         let taskToUpdate = null;
 
-        user.tasks.forEach((task) => {
+        admin.tasks.forEach((task) => {
             if (task.id === taskId) {
                 taskToUpdate = task;
             } else {
@@ -334,19 +334,19 @@ class UserService {
 
         const updatedTask = {
             ...taskToUpdate,
-            ...input,
+            ...input
         };
 
-        await prisma.user.update({
+        await prisma.admin.update({
             where: {
-                id: userId,
+                id: adminId
             },
 
             data: {
-                tasks: [...tasksNotToUpdate, updatedTask],
-            },
+                tasks: [...tasksNotToUpdate, updatedTask]
+            }
         });
     };
 }
 
-export const userService = new UserService();
+export const adminService = new AdminService();
